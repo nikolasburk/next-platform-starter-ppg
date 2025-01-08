@@ -4,6 +4,22 @@ import { RandomQuote } from 'components/random-quote';
 import { Markdown } from 'components/markdown';
 import { ContextAlert } from 'components/context-alert';
 import { getNetlifyContext } from 'utils';
+import { createClient } from "@supabase/supabase-js";
+
+const supabase = createClient(
+  process.env.SUPABASE_DATABASE_URL,
+  process.env.SUPABASE_ANON_KEY
+);
+
+export async function getServerSideProps() {
+  const { data: users, error } = await supabase.from('users').select('*');
+  if (error) {
+      console.error(error);
+      return { props: { users: [] } }; // Return an empty array on error
+  }
+  return { props: { users } };
+}
+
 
 const cards = [
     //{ text: 'Hello', linkText: 'someLink', href: '/' }
@@ -41,18 +57,14 @@ export default function Page() {
                     Read the Docs
                 </Link>
             </section>
-            {!!ctx && (
-                <section className="flex flex-col gap-4">
-                    <Markdown content={contextExplainer} />
-                    <RuntimeContextCard />
-                </section>
-            )}
             <section className="flex flex-col gap-4">
-                <Markdown content={preDynamicContentExplainer} />
-                <RandomQuote />
-                <Markdown content={postDynamicContentExplainer} />
+                <h2 className="text-xl font-bold">Users</h2>
+                <ul>
+                    {users.map((user) => (
+                        <li key={user.id}>{user.name}</li> // Assuming `name` is a field in your users table
+                    ))}
+                </ul>
             </section>
-            {/* !!cards?.length && <CardsGrid cards={cards} /> */}
         </main>
     );
 }
