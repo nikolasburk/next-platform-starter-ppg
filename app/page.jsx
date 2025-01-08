@@ -1,25 +1,18 @@
+"use client"
+
 import Link from 'next/link';
-import { Card } from 'components/card';
-import { RandomQuote } from 'components/random-quote';
-import { Markdown } from 'components/markdown';
-import { ContextAlert } from 'components/context-alert';
+// import { Card } from 'components/card';
+// import { RandomQuote } from 'components/random-quote';
+// import { Markdown } from 'components/markdown';
+// import { ContextAlert } from 'components/context-alert';
 import { getNetlifyContext } from 'utils';
 import { createClient } from "@supabase/supabase-js";
+import { useState, useEffect } from 'react';
 
 const supabase = createClient(
   process.env.SUPABASE_DATABASE_URL,
   process.env.SUPABASE_ANON_KEY
 );
-
-export async function getServerSideProps() {
-  const { data: users, error } = await supabase.from('users').select('*');
-  if (error) {
-      console.error(error);
-      return { props: { users: [] } }; // Return an empty array on error
-  }
-  return { props: { users } };
-}
-
 
 const cards = [
     //{ text: 'Hello', linkText: 'someLink', href: '/' }
@@ -44,10 +37,29 @@ And as always with dynamic content, beware of layout shifts & flicker! (here, we
 const ctx = getNetlifyContext();
 
 export default function Page() {
+
+  const [users, setUsers] = useState([]);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+      async function fetchUsers() {
+          const { data, error } = await supabase.from('users').select('*');
+          if (error) {
+              console.error(error);
+              setError(error);
+          } else {
+              console.log(`data: `, data)
+              setUsers(data);
+          }
+      }
+
+      fetchUsers();
+  }, []);
+
     return (
         <main className="flex flex-col gap-8 sm:gap-16">
             <section className="flex flex-col items-start gap-3 sm:gap-4">
-                <ContextAlert />
+                {/* <ContextAlert /> */}
                 <h1 className="mb-0">Nikos Next.js Demo on Netlify</h1>
                 <p className="text-lg">Get started with Next.js and Netlify in seconds.</p>
                 <Link
@@ -59,6 +71,7 @@ export default function Page() {
             </section>
             <section className="flex flex-col gap-4">
                 <h2 className="text-xl font-bold">Users</h2>
+                {error && <p className="text-red-500">Failed to load users.</p>}
                 <ul>
                     {users.map((user) => (
                         <li key={user.id}>{user.name}</li> // Assuming `name` is a field in your users table
@@ -67,13 +80,4 @@ export default function Page() {
             </section>
         </main>
     );
-}
-
-function RuntimeContextCard() {
-    const title = `Netlify Context: running in ${ctx} mode.`;
-    if (ctx === 'dev') {
-        return <Card title={title} text="Next.js will rebuild any page you navigate to, including static pages." />;
-    } else {
-        return <Card title={title} text="This page was statically-generated at build time." />;
-    }
 }
